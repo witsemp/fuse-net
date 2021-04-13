@@ -93,8 +93,9 @@ class FuseNet(nn.Module):
                                  nn.ReLU(inplace=True)]
         return nn.Sequential(*block_layers)
 
-    def create_decoder_block(self, in_features: int, out_features: int, use_dropout=True) -> nn.Sequential:
+    def create_decoder_block(self, in_features: int, out_features: int, use_dropout: bool = True) -> nn.Sequential:
         """
+        :param use_dropout: indicates if last dropout layer of a block is used
         :param in_features: number of input features
         :param out_features: number of output features
         :return nn.Sequential: decoder block
@@ -125,7 +126,7 @@ class FuseNet(nn.Module):
                 nn.ReLU(),
             )
 
-    def forward(self, rgb_inputs, depth_inputs):
+    def forward(self, rgb_inputs: torch.Tensor, depth_inputs: torch.Tensor) -> torch.Tensor:
         ### Depth encoder forward pass ###
         # Stage 1
         x_1 = self.CBR1_DEPTH_ENCODER(depth_inputs)
@@ -196,6 +197,8 @@ class FuseNet(nn.Module):
         # Stage 1
         y = F.max_unpool2d(y, id1, kernel_size=2, stride=2)
         y = self.CBR1_DECODER(y)
+
+        return y
 
 
 fn = FuseNet()
