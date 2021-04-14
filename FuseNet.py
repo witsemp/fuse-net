@@ -5,9 +5,9 @@ from torchvision import models
 from typing import List
 
 
-class FuseNet(nn.Module):
+class FuseNetRGBD(nn.Module):
     def __init__(self):
-        super(FuseNet, self).__init__()
+        super(FuseNetRGBD, self).__init__()
 
         self.rgb_layers = self.get_layers_from_vgg16()
         self.depth_layers = self.get_layers_from_vgg16()
@@ -25,7 +25,7 @@ class FuseNet(nn.Module):
         self.dropout4_rgb = nn.Dropout(p=0.4)
         self.CBR5_RGB_ENCODER = self.create_encoder_block(512, [10, 11, 12], 'rgb')
         self.pool5_rgb = nn.MaxPool2d(kernel_size=2, stride=2, return_indices=True)
-        self.dropout4_rgb = nn.Dropout(p=0.4)
+        self.dropout5_rgb = nn.Dropout(p=0.4)
 
         # Create layers for depth encoder
         # Average the weights of first layer in depth encoder,
@@ -105,9 +105,9 @@ class FuseNet(nn.Module):
                 nn.BatchNorm2d(in_features),
                 nn.ReLU(),
                 nn.Conv2d(in_features, out_features, kernel_size=3, padding=1),
-                nn.BatchNorm2d(in_features),
+                nn.BatchNorm2d(out_features),
                 nn.ReLU(),
-                nn.Dropout(p=0.4)
+                nn.Dropout(p=0.4),
             )
         else:
             return nn.Sequential(
@@ -118,7 +118,7 @@ class FuseNet(nn.Module):
                 nn.BatchNorm2d(in_features),
                 nn.ReLU(),
                 nn.Conv2d(in_features, out_features, kernel_size=3, padding=1),
-                nn.BatchNorm2d(in_features),
+                nn.BatchNorm2d(out_features),
                 nn.ReLU(),
             )
 
@@ -148,50 +148,55 @@ class FuseNet(nn.Module):
         ### RGB encoder forward pass ###
         y = self.CBR1_RGB_ENCODER(rgb_inputs)
         y = torch.add(y, x_1)
+        y_size_1 = y.size()
         y, id1 = self.pool1_rgb(y)
 
         # Stage 2
         y = self.CBR2_RGB_ENCODER(y)
         y = torch.add(y, x_2)
-        y, id2 = self.pool2(y)
+        y_size_2 = y.size()
+        y, id2 = self.pool2_rgb(y)
 
         # Stage 3
         y = self.CBR3_RGB_ENCODER(y)
         y = torch.add(y, x_3)
-        y, id3 = self.pool3(y)
-        y = self.dropout3(y)
+        y_size_3 = y.size()
+        y, id3 = self.pool3_rgb(y)
+        y = self.dropout3_rgb(y)
 
         # Stage 4
         y = self.CBR4_RGB_ENCODER(y)
         y = torch.add(y, x_4)
-        y, id4 = self.pool4(y)
-        y = self.dropout4(y)
+        y_size_4 = y.size()
+        y, id4 = self.pool4_rgb(y)
+        y = self.dropout4_rgb(y)
 
         # Stage 5
         y = self.CBR5_RGB_ENCODER(y)
         y = torch.add(y, x_5)
-        y, id5 = self.pool5(y)
-        y = self.dropout5(y)
+        y_size_5 = y.size()
+        y, id5 = self.pool5_rgb(y)
+        y = self.dropout5_rgb(y)
 
         ### Decoder forward pass ###
         # Stage 5
-        y = F.max_unpool2d(y, id5, kernel_size=2, stride=2, output_size=y.size())
+        y = F.max_unpool2d(y, id5, kernel_size=2, stride=2, output_size=y_size_5)
         y = self.CBR5_DECODER(y)
 
         # Stage 4
-        y = F.max_unpool2d(y, id4, kernel_size=2, stride=2)
+        y = F.max_unpool2d(y, id4, kernel_size=2, stride=2, output_size=y_size_4)
         y = self.CBR4_DECODER(y)
 
         # Stage 3
-        y = F.max_unpool2d(y, id3, kernel_size=2, stride=2)
+        y = F.max_unpool2d(y, id3, kernel_size=2, stride=2, output_size=y_size_3)
         y = self.CBR3_DECODER(y)
 
         # Stage 2
-        y = F.max_unpool2d(y, id2, kernel_size=2, stride=2)
+        y = F.max_unpool2d(y, id2, kernel_size=2, stride=2, output_size=y_size_2)
         y = self.CBR2_DECODER(y)
 
         # Stage 1
-        y = F.max_unpool2d(y, id1, kernel_size=2, stride=2)
+        y = F.max_unpool2d(y, id1, kernel_size=2, stride=2, output_size=y_size_1)
         y = self.CBR1_DECODER(y)
 
         return y

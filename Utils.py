@@ -41,3 +41,7 @@ def move_inputs_targets(inputs_list: List,
     for i, (input_name, target_name) in enumerate(zip(inputs_list, targets_list)):
         copy(input_name, os.path.join(target_dir_path, 'inputs'))
         copy(target_name, os.path.join(target_dir_path, 'targets'))
+
+
+def list_mean(values: List) -> float:
+    return sum(values) / len(values)
