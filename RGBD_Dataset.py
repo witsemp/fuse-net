@@ -1,6 +1,5 @@
 from sklearn.model_selection import train_test_split
 from natsort import natsorted
-from shutil import copy
 import numpy as np
 import cv2 as cv
 import os
