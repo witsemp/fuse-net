@@ -1,9 +1,7 @@
-import numpy as np
-import cv2 as cv
-from torchvision import models
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import models
 from typing import List
 
 
@@ -74,8 +72,6 @@ class FuseNet(nn.Module):
     def create_encoder_block(self, batch_norm_features: int, conv_layers_indices: List[int],
                              encoder_type) -> nn.Sequential:
         """
-
-
         :param encoder_type: "depth" to use self.depth_layers, "rgb" to use self.rgb_layers
         :param batch_norm_features: number of features for batch normalization layers
         :param conv_layers_list: indices of conv layers from self.layers
@@ -201,5 +197,3 @@ class FuseNet(nn.Module):
         return y
 
 
-fn = FuseNet()
-print(fn)
